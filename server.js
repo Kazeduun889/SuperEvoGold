@@ -19,7 +19,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.static('public'));
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 // Бот: Начало
 bot.start(async (ctx) => {
@@ -49,12 +50,22 @@ app.post('/api/reward', async (req, res) => {
 
 // API: Вывод
 app.post('/api/withdraw', async (req, res) => {
-    const { userId, gameId } = req.body;
+    const { userId, amount, imageBase64 } = req.body;
     const user = (await pool.query('SELECT * FROM users WHERE id = $1', [userId])).rows[0];
-    if (user.balance < (userId == ADMIN_ID ? 10 : 1000)) return res.json({ success: false, message: 'Недостаточно средств' });
+    const minWithdraw = userId == ADMIN_ID ? 10 : 1000;
     
-    await pool.query('UPDATE users SET balance = 0 WHERE id = $1', [userId]);
-    bot.telegram.sendMessage(ADMIN_ID, `💸 ЗАЯВКА НА ВЫВОД\nID: ${userId}\nGame ID: ${gameId}\nСумма: ${user.balance} G`);
+    // Проверки на дурака
+    if (user.balance < minWithdraw || amount > user.balance || amount < minWithdraw) {
+        return res.json({ success: false, message: 'Некорректная сумма или недостаточно средств' });
+    }
+    
+    // Списываем баланс ТОЧНО на сумму вывода
+    await pool.query('UPDATE users SET balance = balance - $1 WHERE id = $2', [amount, userId]);
+    
+    // Сохраняем заявку со скриншотом в базу
+    await pool.query('INSERT INTO withdrawals (user_id, amount, image_base64) VALUES ($1, $2, $3)',[userId, amount, imageBase64]);
+    
+    bot.telegram.sendMessage(ADMIN_ID, `💸 НОВАЯ ЗАЯВКА НА ВЫВОД\nID: ${userId}\nСумма: ${amount} G\nЗайдите в админ-панель Mini App для проверки.`);
     res.json({ success: true });
 });
 
