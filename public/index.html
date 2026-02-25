@@ -8,26 +8,43 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        :root { --bg: #0c0c0e; --card: #161618; --border: #242426; --primary: #d4af37; --text: #ffffff; --text-dim: #8e8e93; }
+        
+        :root { 
+            --bg: #0c0c0e; 
+            --card: #161618; 
+            --border: #242426; 
+            --primary: #d4af37; 
+            --text: #ffffff; 
+            --text-dim: #8e8e93; 
+        }
+        
         * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background: var(--bg); color: var(--text); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
+        /* Шапка */
         .header { padding: 20px; display: flex; justify-content: flex-end; align-items: center; }
         .admin-badge { color: #ff3b30; cursor: pointer; display: none; }
 
         .app-container { flex: 1; padding: 0 16px; overflow-y: auto; display: flex; flex-direction: column; }
         .screen { display: none; flex-direction: column; height: 100%; }
-        .screen.active { display: flex; }
+        .screen.active { display: flex; animation: fade 0.2s ease-in; }
+        @keyframes fade { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
         /* Карточка баланса */
         .balance-card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 40px 20px; text-align: center; margin-bottom: 20px; }
         .bal-val { font-size: 48px; font-weight: 700; color: var(--primary); }
-        .bal-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
+        .bal-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; font-weight: 500; }
 
         /* Кнопки */
-        .btn { background: var(--primary); color: #000; border: none; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+        .btn { background: var(--primary); color: #000; border: none; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; transition: transform 0.1s; }
         .btn:active { transform: scale(0.98); }
         .btn:disabled { background: var(--border); color: var(--text-dim); }
+
+        /* Табличка инфо (Мин. вывод и награда) */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .info-card { background: var(--card); border: 1px solid var(--border); padding: 16px; border-radius: 16px; text-align: left; }
+        .info-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; margin-bottom: 6px; font-weight: 600; }
+        .info-val { font-size: 15px; font-weight: 700; color: #fff; }
 
         /* Чат поддержки */
         .chat-container { flex: 1; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; overflow-y: auto; padding-bottom: 20px; }
@@ -36,68 +53,105 @@
         .msg.support { align-self: flex-start; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
         
         .chat-input-area { display: flex; gap: 8px; padding-bottom: 10px; }
-        input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: #fff; outline: none; }
+        input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 14px; color: #fff; outline: none; font-size: 15px; }
+        input:focus { border-color: var(--primary); }
 
         /* Навигация */
-        .nav { background: var(--card); border-top: 1px solid var(--border); display: flex; padding: 10px 0 calc(10px + var(--tg-viewport-safe-area-inset-bottom, 0)); }
-        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-dim); font-size: 10px; text-decoration: none; }
+        .nav { background: var(--card); border-top: 1px solid var(--border); display: flex; padding: 12px 0 calc(12px + var(--tg-viewport-safe-area-inset-bottom, 0)); }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-dim); font-size: 10px; font-weight: 600; text-decoration: none; transition: 0.2s; }
         .nav-item.active { color: var(--primary); }
 
-        #timer { text-align: center; color: var(--primary); font-size: 14px; margin-bottom: 10px; display: none; }
+        #timer { text-align: center; color: var(--primary); font-size: 14px; margin-bottom: 12px; font-weight: 600; display: none; }
     </style>
 </head>
 <body>
 
+    <!-- Шапка (только для админа) -->
     <div class="header">
         <div id="admin-icon" class="admin-badge" onclick="showScreen('admin')"><i data-lucide="shield-alert"></i></div>
     </div>
 
     <div class="app-container">
+        
         <!-- ГЛАВНАЯ -->
         <div id="screen-main" class="screen active">
             <div class="balance-card">
                 <div class="bal-val"><span id="balance">0.0</span> G</div>
                 <div class="bal-label">Доступная голда</div>
             </div>
-            <div id="timer">Ожидание: <span id="sec">15</span>с</div>
-            <button class="btn" id="adBtn" onclick="runAds()"><i data-lucide="layout"></i> Просмотр сайтов</button>
+            
+            <div id="timer">Проверка активности: <span id="sec">15</span>с</div>
+            
+            <button class="btn" id="adBtn" onclick="runAds()">
+                <i data-lucide="external-link"></i> Просмотр сайтов
+            </button>
+
+            <!-- Табличка с информацией -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label">Минимум к выводу</div>
+                    <div class="info-val" id="min-val">1000 G</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Награда за сайт</div>
+                    <div class="info-val">1.0 - 1.5 G</div>
+                </div>
+            </div>
         </div>
 
         <!-- ВЫВОД -->
         <div id="screen-withdraw" class="screen">
-            <h2>Вывод</h2>
+            <h2 style="margin-top: 0; font-size: 24px;">Вывод средств</h2>
+            <p style="color: var(--text-dim); font-size: 14px; margin-top: -10px; margin-bottom: 20px;">Введите ваш игровой ID для перевода голды.</p>
+            
             <div style="background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid var(--border);">
-                <label style="font-size: 12px; color: var(--text-dim);">ID Игрока</label>
-                <input type="text" id="game-id" placeholder="12345678" style="width: 100%; margin: 10px 0 20px 0;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 600;">Игровой ID (Project Evo)</label>
+                <input type="text" id="game-id" placeholder="Например: 12345678" style="width: 100%; margin: 10px 0 20px 0;">
                 <button class="btn" onclick="requestWithdraw()">Создать заявку</button>
             </div>
         </div>
 
         <!-- ПОДДЕРЖКА -->
         <div id="screen-support" class="screen">
-            <h2 id="support-title">Поддержка</h2>
+            <h2 id="support-title" style="margin-top: 0;">Поддержка</h2>
             <div class="chat-container" id="chat-box">
                 <!-- Сообщения будут тут -->
             </div>
             <div class="chat-input-area">
-                <input type="text" id="support-msg" placeholder="Опишите проблему...">
-                <button class="btn" style="width: auto; padding: 12px;" onclick="sendSupportMsg()"><i data-lucide="send"></i></button>
+                <input type="text" id="support-msg" placeholder="Опишите вашу проблему...">
+                <button class="btn" style="width: auto; padding: 14px 18px;" onclick="sendSupportMsg()"><i data-lucide="send"></i></button>
             </div>
         </div>
 
         <!-- АДМИН ПАНЕЛЬ -->
         <div id="screen-admin" class="screen">
-            <h2>Админ Терминал</h2>
-            <div id="admin-stats" style="margin-bottom: 20px;">Загрузка...</div>
-            <h3>Тикеты поддержки:</h3>
+            <h2 style="color: #ff3b30; margin-top: 0;">Админ Терминал</h2>
+            <div class="info-grid" style="grid-template-columns: 1fr; margin-top: 0; margin-bottom: 20px;">
+                <div class="info-card">
+                    <div class="info-label">Статистика</div>
+                    <div class="info-val" id="admin-stats">Загрузка...</div>
+                </div>
+            </div>
+            <h3 style="font-size: 16px; margin-bottom: 10px;">Тикеты поддержки:</h3>
             <div id="admin-tickets" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
     </div>
 
+    <!-- Навигация -->
     <nav class="nav">
-        <div class="nav-item active" id="nav-main" onclick="showScreen('main')"><i data-lucide="home"></i><span>Главная</span></div>
-        <div class="nav-item" id="nav-withdraw" onclick="showScreen('withdraw')"><i data-lucide="arrow-up-right"></i><span>Вывод</span></div>
-        <div class="nav-item" id="nav-support" onclick="showScreen('support')"><i data-lucide="message-square"></i><span>Поддержка</span></div>
+        <div class="nav-item active" id="nav-main" onclick="showScreen('main')">
+            <i data-lucide="home"></i>
+            <span>Главная</span>
+        </div>
+        <!-- Заменили иконку на кошелек (wallet) -->
+        <div class="nav-item" id="nav-withdraw" onclick="showScreen('withdraw')">
+            <i data-lucide="wallet"></i>
+            <span>Вывод</span>
+        </div>
+        <div class="nav-item" id="nav-support" onclick="showScreen('support')">
+            <i data-lucide="message-square"></i>
+            <span>Поддержка</span>
+        </div>
     </nav>
 
     <script>
@@ -105,24 +159,37 @@
         tg.expand();
         const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0;
         let isAdmin = false;
-        let activeChatUserId = userId; // Для админа: какой чат сейчас открыт
+        let activeChatUserId = userId; 
+
+        // ВСТАВЬ СЮДА СВОЮ ССЫЛКУ ОТ MONETAG
+        const MONETAG_LINK = 'ТВОЯ_ССЫЛКА_MONETAG';
 
         async function init() {
-            const res = await fetch(`/api/user/${userId}`);
-            const data = await res.json();
-            document.getElementById('balance').innerText = data.balance.toFixed(1);
-            if (data.isAdmin) {
-                isAdmin = true;
-                document.getElementById('admin-icon').style.display = 'block';
+            try {
+                const res = await fetch(`/api/user/${userId}`);
+                const data = await res.json();
+                
+                // Устанавливаем баланс и минималку в табличку
+                document.getElementById('balance').innerText = (data.balance || 0).toFixed(1);
+                document.getElementById('min-val').innerText = (data.minWithdraw || 1000) + ' G';
+                
+                if (data.isAdmin) {
+                    isAdmin = true;
+                    document.getElementById('admin-icon').style.display = 'block';
+                }
+                loadMessages();
+            } catch (e) {
+                console.error('Ошибка инициализации');
             }
-            loadMessages();
         }
 
         function showScreen(name) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            
             document.getElementById(`screen-${name}`).classList.add('active');
             if(name !== 'admin') document.getElementById(`nav-${name}`).classList.add('active');
+            
             if(name === 'admin') loadAdminData();
             if(name === 'support') {
                 activeChatUserId = userId;
@@ -134,66 +201,91 @@
 
         // Реклама
         function runAds() {
-            window.open('ТВОЯ_ССЫЛКА_MONETAG', '_blank');
+            window.open(MONETAG_LINK, '_blank');
             const btn = document.getElementById('adBtn');
             const t = document.getElementById('timer');
-            btn.disabled = true; t.style.display = 'block';
+            const secSpan = document.getElementById('sec');
+            
+            btn.disabled = true; 
+            t.style.display = 'block';
             let s = 15;
+            
             const iv = setInterval(async () => {
-                s--; document.getElementById('sec').innerText = s;
+                s--; 
+                secSpan.innerText = s;
                 if(s <= 0) {
                     clearInterval(iv);
-                    const res = await fetch('/api/reward', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId}) });
-                    const d = await res.json();
-                    document.getElementById('balance').innerText = d.newBalance.toFixed(1);
-                    btn.disabled = false; t.style.display = 'none';
+                    try {
+                        const res = await fetch('/api/reward', { 
+                            method: 'POST', 
+                            headers: {'Content-Type': 'application/json'}, 
+                            body: JSON.stringify({userId}) 
+                        });
+                        const d = await res.json();
+                        if (d.success) {
+                            document.getElementById('balance').innerText = d.newBalance.toFixed(1);
+                            tg.HapticFeedback.notificationOccurred('success');
+                        }
+                    } catch (e) {
+                        tg.showAlert('Ошибка начисления');
+                    }
+                    btn.disabled = false; 
+                    t.style.display = 'none';
                 }
             }, 1000);
         }
 
         // Поддержка
         async function loadMessages() {
-            const res = await fetch(`/api/support/messages/${activeChatUserId}`);
-            const msgs = await res.json();
-            const box = document.getElementById('chat-box');
-            box.innerHTML = msgs.map(m => `
-                <div class="msg ${m.sender_id == userId ? 'me' : 'support'}">${m.message}</div>
-            `).join('');
-            box.scrollTop = box.scrollHeight;
+            try {
+                const res = await fetch(`/api/support/messages/${activeChatUserId}`);
+                const msgs = await res.json();
+                const box = document.getElementById('chat-box');
+                box.innerHTML = msgs.map(m => `
+                    <div class="msg ${m.sender_id == userId ? 'me' : 'support'}">${m.message}</div>
+                `).join('');
+                box.scrollTop = box.scrollHeight;
+            } catch(e) {}
         }
 
         async function sendSupportMsg() {
             const input = document.getElementById('support-msg');
-            const text = input.value;
+            const text = input.value.trim();
             if(!text) return;
             
-            await fetch('/api/support/send', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    userId: userId, 
-                    text: text, 
-                    isAdminReply: (isAdmin && activeChatUserId !== userId),
-                    targetUserId: activeChatUserId 
-                })
-            });
-            input.value = '';
-            loadMessages();
+            try {
+                await fetch('/api/support/send', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        userId: userId, 
+                        text: text, 
+                        isAdminReply: (isAdmin && activeChatUserId !== userId),
+                        targetUserId: activeChatUserId 
+                    })
+                });
+                input.value = '';
+                loadMessages();
+            } catch(e) {
+                tg.showAlert('Ошибка отправки');
+            }
         }
 
-        // Админ логика
+        // Админка
         async function loadAdminData() {
-            const res = await fetch('/api/admin/stats');
-            const s = await res.json();
-            document.getElementById('admin-stats').innerText = `Юзеров: ${s.users} | Долг: ${s.debt} G`;
-            
-            const tRes = await fetch('/api/admin/support-list');
-            const tickets = await tRes.json();
-            document.getElementById('admin-tickets').innerHTML = tickets.map(t => `
-                <button class="btn" style="background: var(--card); color: #fff; font-size: 12px;" onclick="openAdminChat(${t.user_id})">
-                    Чат с ID: ${t.user_id}
-                </button>
-            `).join('');
+            try {
+                const res = await fetch('/api/admin/stats');
+                const s = await res.json();
+                document.getElementById('admin-stats').innerText = `Юзеров: ${s.users} | Долг: ${s.debt} G`;
+                
+                const tRes = await fetch('/api/admin/support-list');
+                const tickets = await tRes.json();
+                document.getElementById('admin-tickets').innerHTML = tickets.map(t => `
+                    <button class="btn" style="background: var(--card); color: #fff; font-size: 14px; padding: 12px; border: 1px solid var(--border);" onclick="openAdminChat(${t.user_id})">
+                        Чат с ID: ${t.user_id}
+                    </button>
+                `).join('');
+            } catch(e){}
         }
 
         function openAdminChat(targetId) {
@@ -202,17 +294,40 @@
             document.getElementById('support-title').innerText = 'Ответ игроку ' + targetId;
         }
 
+        // Вывод
         async function requestWithdraw() {
             const gid = document.getElementById('game-id').value;
-            const res = await fetch('/api/withdraw', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId, gameId: gid}) });
-            const d = await res.json();
-            tg.showAlert(d.success ? 'Успешно!' : d.message);
-            init();
+            if(!gid) return tg.showAlert('Введите ID!');
+
+            try {
+                const res = await fetch('/api/withdraw', { 
+                    method: 'POST', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({userId, gameId: gid}) 
+                });
+                const d = await res.json();
+                if (d.success) {
+                    tg.showAlert('Заявка успешно создана!');
+                    document.getElementById('game-id').value = '';
+                    init();
+                    showScreen('main');
+                } else {
+                    tg.showAlert(d.message);
+                }
+            } catch(e) {
+                tg.showAlert('Ошибка сервера');
+            }
         }
 
         lucide.createIcons();
         init();
-        setInterval(loadMessages, 5000); // Автообновление чата раз в 5 сек
+        
+        // Автообновление чата, если открыта вкладка поддержки
+        setInterval(() => {
+            if (document.getElementById('screen-support').classList.contains('active')) {
+                loadMessages();
+            }
+        }, 5000);
     </script>
 </body>
 </html>
