@@ -19,8 +19,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.static('public'));
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Бот: Начало
 bot.start(async (ctx) => {
@@ -105,7 +105,19 @@ app.get('/api/admin/stats', async (req, res) => {
     const debt = await pool.query('SELECT SUM(balance) FROM users');
     res.json({ users: users.rows[0].count, debt: parseFloat(debt.rows[0].sum || 0).toFixed(1) });
 });
+// Получить список заявок
+app.get('/api/admin/withdrawals', async (req, res) => {
+    const result = await pool.query("SELECT * FROM withdrawals WHERE status = 'pending' ORDER BY created_at ASC");
+    res.json(result.rows);
+});
 
+// Подтвердить выплату
+app.post('/api/admin/withdrawals/complete', async (req, res) => {
+    const { id, userId, amount } = req.body;
+    await pool.query("UPDATE withdrawals SET status = 'completed' WHERE id = $1", [id]);
+    bot.telegram.sendMessage(userId, `✅ Ваша заявка на вывод ${amount} G успешно обработана администратором!`);
+    res.json({ success: true });
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server started` ) );
 bot.launch();
