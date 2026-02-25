@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earn Gold</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #1c1c1e; color: white; text-align: center; padding: 20px; }
+        .btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
+        .btn-ad { background-color: #34b7f1; color: white; }
+        .btn-withdraw { background-color: #f1c40f; color: black; }
+        .balance { font-size: 24px; margin-bottom: 20px; font-weight: bold; }
+        .input-field { width: 90%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 10px; }
+        #timer { color: #888; display: none; margin-bottom: 10px;}
+    </style>
+</head>
+<body>
+
+    <h1>Project Evo Gold</h1>
+    <div class="balance">Баланс: <span id="balance">0</span> G</div>
+
+    <!-- Кнопка рекламы -->
+    <button class="btn btn-ad" id="adBtn" onclick="watchAd()">📺 Смотреть рекламу (+10 G)</button>
+    <div id="timer">Ждите проверки... <span id="timeLeft">10</span> сек</div>
+
+    <hr style="border-color: #333; margin: 20px 0;">
+
+    <!-- Форма вывода -->
+    <h3>Вывод средств</h3>
+    <input type="text" id="gameId" class="input-field" placeholder="Ваш ID в Project Evolution">
+    <button class="btn btn-withdraw" onclick="withdraw()">📤 Вывести в игру</button>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'test_user';
+        const API_URL = ''; // Оставьте пустым, если фронт и бэк на одном домене
+
+        // Вставьте сюда вашу ссылку от Monetag
+        const MONETAG_LINK = 'https://omg10.com/4/10652849'; 
+
+        // Загрузка баланса
+        async function loadBalance() {
+            const res = await fetch(`${API_URL}/api/balance/${userId}`);
+            const data = await res.json();
+            document.getElementById('balance').innerText = data.balance;
+        }
+
+        function watchAd() {
+            // 1. Открываем рекламу
+            window.open(MONETAG_LINK, '_blank');
+            
+            // 2. Запускаем таймер имитации проверки
+            const btn = document.getElementById('adBtn');
+            const timerDiv = document.getElementById('timer');
+            const timeLeftSpan = document.getElementById('timeLeft');
+            
+            btn.disabled = true;
+            timerDiv.style.display = 'block';
+            let timeLeft = 10;
+
+            const interval = setInterval(() => {
+                timeLeft--;
+                timeLeftSpan.innerText = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(interval);
+                    // Начисляем награду
+                    claimReward();
+                    
+                    btn.disabled = false;
+                    timerDiv.style.display = 'none';
+                    timeLeft = 10;
+                }
+            }, 1000);
+        }
+
+        async function claimReward() {
+            const res = await fetch(`${API_URL}/api/reward`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            loadBalance();
+            tg.showAlert('Начислено +10 монет!');
+        }
+
+        async function withdraw() {
+            const gameId = document.getElementById('gameId').value;
+            if (!gameId) return tg.showAlert('Введите ID из игры!');
+
+            const res = await fetch(`${API_URL}/api/withdraw`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, gameId })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                tg.showAlert('Заявка отправлена админу!');
+                loadBalance();
+            } else {
+                tg.showAlert(data.message);
+            }
+        }
+
+        loadBalance();
+    </script>
+</body>
+</html>
