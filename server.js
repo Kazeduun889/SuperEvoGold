@@ -4,13 +4,11 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 
-// --- КОНФИГУРАЦИЯ ---
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const WEB_APP_URL = process.env.WEB_APP_URL; 
 const ADMIN_ID = parseInt(process.env.ADMIN_ID); 
 const DATABASE_URL = process.env.DATABASE_URL;
 
-// --- ПОДКЛЮЧЕНИЕ К БАЗЕ ---
 const pool = new Pool({
     connectionString: DATABASE_URL,
     ssl: { rejectUnauthorized: false }
@@ -23,77 +21,80 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(bodyParser.json());
 
-// --- БОТ ЛОГИКА ---
+// Бот: Начало
 bot.start(async (ctx) => {
     const userId = ctx.from.id;
-    // Можно добавить username, если нужно
-    ctx.reply('💎 Открыть приложение:', {
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: "🚀 Запустить", web_app: { url: WEB_APP_URL } }]
-            ]
-        }
+    await pool.query('INSERT INTO users (id, username, balance) VALUES ($1, $2, 0) ON CONFLICT (id) DO NOTHING', [userId, ctx.from.username]);
+    ctx.reply('💎 Добро пожаловать! Используйте кнопку ниже для входа:', {
+        reply_markup: { inline_keyboard: [[{ text: "🚀 Запустить приложение", web_app: { url: WEB_APP_URL } }]] }
     });
 });
 
-// --- API ---
+// API: Данные пользователя
 app.get('/api/user/:id', async (req, res) => {
-    try {
-        const userId = req.params.id;
-        const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
-        
-        if (result.rows.length === 0) {
-            await pool.query('INSERT INTO users (id, balance) VALUES ($1, 0) ON CONFLICT (id) DO NOTHING', [userId]);
-            return res.json({ balance: 0, isAdmin: false, minWithdraw: 1000 });
-        }
-        const user = result.rows[0];
-        const isAdmin = (parseInt(userId) === ADMIN_ID);
-        res.json({ balance: parseFloat(user.balance), isAdmin, minWithdraw: isAdmin ? 10 : 1000 });
-    } catch (e) {
-        res.status(500).json({ error: 'Server error' });
-    }
+    const userId = req.params.id;
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [userId]);
+    const isAdmin = (parseInt(userId) === ADMIN_ID);
+    if (result.rows.length === 0) return res.json({ balance: 0, isAdmin });
+    res.json({ balance: parseFloat(result.rows[0].balance), isAdmin, minWithdraw: isAdmin ? 10 : 1000 });
 });
 
+// API: Награда
 app.post('/api/reward', async (req, res) => {
-    try {
-        const { userId } = req.body;
-        const reward = Math.floor((Math.random() * 0.6 + 1) * 10) / 10;
-        await pool.query('UPDATE users SET balance = balance + $1 WHERE id = $2', [reward, userId]);
-        const resUser = await pool.query('SELECT balance FROM users WHERE id = $1', [userId]);
-        res.json({ success: true, reward, newBalance: parseFloat(resUser.rows[0].balance) });
-    } catch (e) {
-        res.status(500).json({ error: 'Error' });
-    }
+    const { userId } = req.body;
+    const reward = Math.floor((Math.random() * 0.6 + 1) * 10) / 10;
+    const result = await pool.query('UPDATE users SET balance = balance + $1 WHERE id = $2 RETURNING balance', [reward, userId]);
+    res.json({ success: true, reward, newBalance: parseFloat(result.rows[0].balance) });
 });
 
+// API: Вывод
 app.post('/api/withdraw', async (req, res) => {
     const { userId, gameId } = req.body;
-    // Логику вывода можно сократить для теста, главное чтобы сервер жил
-    bot.telegram.sendMessage(ADMIN_ID, `Вывод: ${userId} GameID: ${gameId}`);
+    const user = (await pool.query('SELECT * FROM users WHERE id = $1', [userId])).rows[0];
+    if (user.balance < (userId == ADMIN_ID ? 10 : 1000)) return res.json({ success: false, message: 'Недостаточно средств' });
+    
     await pool.query('UPDATE users SET balance = 0 WHERE id = $1', [userId]);
+    bot.telegram.sendMessage(ADMIN_ID, `💸 ЗАЯВКА НА ВЫВОД\nID: ${userId}\nGame ID: ${gameId}\nСумма: ${user.balance} G`);
     res.json({ success: true });
 });
 
-// --- ГЛАВНОЕ: WEBHOOK ВМЕСТО LAUNCH ---
-// Мы создаем секретный путь, куда Телеграм будет стучаться
-const secretPath = `/telegraf/${bot.secretPathComponent()}`;
-app.use(bot.webhookCallback(secretPath));
+// --- СИСТЕМА ПОДДЕРЖКИ ---
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-    console.log(`Server running on port ${PORT}`);
-    
-    // Если переменная WEB_APP_URL задана, устанавливаем вебхук
-    if (WEB_APP_URL) {
-        const webhookUrl = `${WEB_APP_URL}${secretPath}`;
-        console.log(`Setting webhook: ${webhookUrl}`);
-        await bot.telegram.setWebhook(webhookUrl);
-        console.log(`✅ Webhook успешно установлен!`);
+// Отправить сообщение
+app.post('/api/support/send', async (req, res) => {
+    const { userId, text, isAdminReply, targetUserId } = req.body;
+    // Если это ответ админа, сохраняем как от ADMIN_ID для targetUserId
+    const finalUserId = isAdminReply ? targetUserId : userId;
+    const senderId = userId;
+
+    await pool.query('INSERT INTO support_messages (user_id, sender_id, message) VALUES ($1, $2, $3)', [finalUserId, senderId, text]);
+
+    if (!isAdminReply) {
+        bot.telegram.sendMessage(ADMIN_ID, `📩 Новое сообщение в техподдержку от ${userId}:\n\n"${text}"\n\nОтветьте в админ-панели приложения.`);
     } else {
-        console.log(`❌ WEB_APP_URL не задан, вебхук не установлен!`);
+        bot.telegram.sendMessage(targetUserId, `👨‍💻 Техподдержка прислала вам ответ! Проверьте в приложении.`);
     }
+    res.json({ success: true });
 });
 
-// Эти строки предотвращают зависание процессов
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+// Получить историю сообщений (для юзера или админа)
+app.get('/api/support/messages/:userId', async (req, res) => {
+    const result = await pool.query('SELECT * FROM support_messages WHERE user_id = $1 ORDER BY created_at ASC', [req.params.userId]);
+    res.json(result.rows);
+});
+
+// Получить список всех тикетов (только для админа)
+app.get('/api/admin/support-list', async (req, res) => {
+    const result = await pool.query('SELECT DISTINCT user_id FROM support_messages ORDER BY user_id DESC');
+    res.json(result.rows);
+});
+
+app.get('/api/admin/stats', async (req, res) => {
+    const users = await pool.query('SELECT COUNT(*) FROM users');
+    const debt = await pool.query('SELECT SUM(balance) FROM users');
+    res.json({ users: users.rows[0].count, debt: parseFloat(debt.rows[0].sum || 0).toFixed(1) });
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server started` ) );
+bot.launch();

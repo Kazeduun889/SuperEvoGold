@@ -7,389 +7,212 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        :root { --bg: #0c0c0e; --card: #161618; --border: #242426; --primary: #d4af37; --text: #ffffff; --text-dim: #8e8e93; }
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        .header { padding: 20px; display: flex; justify-content: flex-end; align-items: center; }
+        .admin-badge { color: #ff3b30; cursor: pointer; display: none; }
 
-        :root {
-            --bg: #0c0c0e;
-            --card: #161618;
-            --border: #242426;
-            --primary: #d4af37; /* Матовое золото */
-            --text-main: #ffffff;
-            --text-secondary: #8e8e93;
-            --accent-blue: #007aff;
-            --danger: #ff3b30;
-        }
+        .app-container { flex: 1; padding: 0 16px; overflow-y: auto; display: flex; flex-direction: column; }
+        .screen { display: none; flex-direction: column; height: 100%; }
+        .screen.active { display: flex; }
 
-        * { 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent; 
-            font-family: 'Inter', sans-serif;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden;
-        }
-
-        .app-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 20px 16px;
-            max-width: 500px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        /* Шапка */
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
-        .profile { display: flex; align-items: center; gap: 12px; }
-        .avatar-circle { 
-            width: 40px; height: 40px; 
-            background: var(--card); 
-            border: 1px solid var(--border); 
-            border-radius: 12px; 
-            display: flex; align-items: center; justify-content: center; 
-        }
-        .user-name { font-weight: 600; font-size: 15px; margin-bottom: 2px; }
-        .user-status { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-
-        /* Карточка баланса — строгий стиль */
-        .balance-section {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 32px 20px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .balance-title { 
-            font-size: 12px; 
-            color: var(--text-secondary); 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
-            margin-bottom: 8px;
-        }
-        .balance-value { 
-            font-size: 44px; 
-            font-weight: 700; 
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .balance-value span { color: var(--primary); }
+        /* Карточка баланса */
+        .balance-card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 40px 20px; text-align: center; margin-bottom: 20px; }
+        .bal-val { font-size: 48px; font-weight: 700; color: var(--primary); }
+        .bal-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 8px; }
 
         /* Кнопки */
-        .btn {
-            width: 100%;
-            padding: 18px;
-            border-radius: 16px;
-            font-size: 16px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        .btn-primary {
-            background: var(--primary);
-            color: #000;
-        }
-        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
-        .btn-primary:disabled { background: var(--border); color: var(--text-secondary); }
+        .btn { background: var(--primary); color: #000; border: none; padding: 18px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background: var(--border); color: var(--text-dim); }
 
-        /* Сетка инфо */
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 12px;
-        }
-        .info-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            padding: 16px;
-            border-radius: 16px;
-        }
-        .info-label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; }
-        .info-val { font-size: 14px; font-weight: 600; }
+        /* Чат поддержки */
+        .chat-container { flex: 1; display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; overflow-y: auto; padding-bottom: 20px; }
+        .msg { max-width: 80%; padding: 12px 16px; border-radius: 18px; font-size: 14px; line-height: 1.4; }
+        .msg.me { align-self: flex-end; background: var(--primary); color: #000; border-bottom-right-radius: 4px; }
+        .msg.support { align-self: flex-start; background: var(--card); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        
+        .chat-input-area { display: flex; gap: 8px; padding-bottom: 10px; }
+        input { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; color: #fff; outline: none; }
 
         /* Навигация */
-        .nav {
-            background: var(--card);
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-around;
-            padding: 12px 0 calc(12px + var(--tg-viewport-safe-area-inset-bottom, 0));
-        }
-        .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 10px;
-            font-weight: 500;
-            flex: 1;
-        }
+        .nav { background: var(--card); border-top: 1px solid var(--border); display: flex; padding: 10px 0 calc(10px + var(--tg-viewport-safe-area-inset-bottom, 0)); }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-dim); font-size: 10px; text-decoration: none; }
         .nav-item.active { color: var(--primary); }
 
-        /* Экраны */
-        .screen { display: none; flex-direction: column; height: 100%; }
-        .screen.active { display: flex; animation: slideUp 0.3s ease-out; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* Ввод данных */
-        .input-group { margin-top: 24px; }
-        .input-group label { display: block; font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; margin-left: 4px; }
-        input {
-            width: 100%;
-            background: var(--card);
-            border: 1px solid var(--border);
-            padding: 16px;
-            border-radius: 14px;
-            color: #fff;
-            font-size: 16px;
-            outline: none;
-        }
-        input:focus { border-color: var(--primary); }
-
-        #timer { 
-            text-align: center; 
-            margin-bottom: 12px; 
-            font-size: 13px; 
-            color: var(--primary); 
-            font-weight: 500;
-            display: none;
-        }
+        #timer { text-align: center; color: var(--primary); font-size: 14px; margin-bottom: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="app-container">
-        <!-- Шапка -->
-        <div class="header">
-            <div class="profile">
-                <div class="avatar-circle"><i data-lucide="shield"></i></div>
-                <div>
-                    <div class="user-name" id="user-display">Загрузка...</div>
-                    <div class="user-status">Project Evolution</div>
-                </div>
-            </div>
-            <div id="admin-badge" onclick="showScreen('admin')" style="display:none; color: var(--danger)">
-                <i data-lucide="lock"></i>
-            </div>
-        </div>
+    <div class="header">
+        <div id="admin-icon" class="admin-badge" onclick="showScreen('admin')"><i data-lucide="shield-alert"></i></div>
+    </div>
 
+    <div class="app-container">
         <!-- ГЛАВНАЯ -->
         <div id="screen-main" class="screen active">
-            <div class="balance-section">
-                <div class="balance-title">Текущий баланс</div>
-                <div class="balance-value">
-                    <span id="balance">0.0</span> G
-                </div>
+            <div class="balance-card">
+                <div class="bal-val"><span id="balance">0.0</span> G</div>
+                <div class="bal-label">Доступная голда</div>
             </div>
-
-            <div id="timer">Проверка активности: <span id="seconds">15</span> сек.</div>
-            
-            <button class="btn btn-primary" id="adBtn" onclick="startWork()">
-                <i data-lucide="external-link"></i>
-                Просмотр сайтов
-            </button>
-
-            <div class="info-grid">
-                <div class="info-card">
-                    <div class="info-label">Минимум к выводу</div>
-                    <div class="info-val" id="min-val">1000 G</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-label">Награда</div>
-                    <div class="info-val">1.0 - 1.5 G</div>
-                </div>
-            </div>
+            <div id="timer">Ожидание: <span id="sec">15</span>с</div>
+            <button class="btn" id="adBtn" onclick="runAds()"><i data-lucide="layout"></i> Просмотр сайтов</button>
         </div>
 
         <!-- ВЫВОД -->
         <div id="screen-withdraw" class="screen">
-            <h2 style="font-size: 22px; margin: 0;">Вывод средств</h2>
-            <p style="color: var(--text-secondary); font-size: 14px; margin-top: 8px;">Введите ваш игровой ID для перевода голды.</p>
-
-            <div class="input-group">
-                <label>Игровой ID (Project Evolution)</label>
-                <input type="text" id="game-id" placeholder="Например: 12345678">
+            <h2>Вывод</h2>
+            <div style="background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid var(--border);">
+                <label style="font-size: 12px; color: var(--text-dim);">ID Игрока</label>
+                <input type="text" id="game-id" placeholder="12345678" style="width: 100%; margin: 10px 0 20px 0;">
+                <button class="btn" onclick="requestWithdraw()">Создать заявку</button>
             </div>
-
-            <button class="btn btn-primary" style="margin-top: 24px;" onclick="handleWithdraw()">
-                Создать заявку
-            </button>
         </div>
 
-        <!-- АДМИН -->
-        <div id="screen-admin" class="screen">
-            <h2 style="color: var(--danger);">Панель управления</h2>
-            <div class="info-grid" style="grid-template-columns: 1fr;">
-                <div class="info-card">
-                    <div class="info-label">Всего пользователей</div>
-                    <div class="info-val" id="admin-users">0</div>
-                </div>
-                <div class="info-card" style="margin-top: 10px;">
-                    <div class="info-label">Общая задолженность</div>
-                    <div class="info-val" id="admin-debt">0 G</div>
-                </div>
+        <!-- ПОДДЕРЖКА -->
+        <div id="screen-support" class="screen">
+            <h2 id="support-title">Поддержка</h2>
+            <div class="chat-container" id="chat-box">
+                <!-- Сообщения будут тут -->
             </div>
+            <div class="chat-input-area">
+                <input type="text" id="support-msg" placeholder="Опишите проблему...">
+                <button class="btn" style="width: auto; padding: 12px;" onclick="sendSupportMsg()"><i data-lucide="send"></i></button>
+            </div>
+        </div>
+
+        <!-- АДМИН ПАНЕЛЬ -->
+        <div id="screen-admin" class="screen">
+            <h2>Админ Терминал</h2>
+            <div id="admin-stats" style="margin-bottom: 20px;">Загрузка...</div>
+            <h3>Тикеты поддержки:</h3>
+            <div id="admin-tickets" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
     </div>
 
-    <!-- Навигация -->
     <nav class="nav">
-        <a href="#" class="nav-item active" id="nav-main" onclick="showScreen('main')">
-            <i data-lucide="wallet"></i>
-            <span>Главная</span>
-        </a>
-        <a href="#" class="nav-item" id="nav-withdraw" onclick="showScreen('withdraw')">
-            <i data-lucide="arrow-up-right"></i>
-            <span>Вывод</span>
-        </a>
-        <a href="#" class="nav-item" onclick="tg.showAlert('Связь с поддержкой: @твой_ник')">
-            <i data-lucide="message-circle"></i>
-            <span>Помощь</span>
-        </a>
+        <div class="nav-item active" id="nav-main" onclick="showScreen('main')"><i data-lucide="home"></i><span>Главная</span></div>
+        <div class="nav-item" id="nav-withdraw" onclick="showScreen('withdraw')"><i data-lucide="arrow-up-right"></i><span>Вывод</span></div>
+        <div class="nav-item" id="nav-support" onclick="showScreen('support')"><i data-lucide="message-square"></i><span>Поддержка</span></div>
     </nav>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        
-        // --- НАСТРОЙКИ ---
-        const MONETAG_LINK = 'ТВОЯ_ССЫЛКА_ОТ_MONETAG';
         const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0;
-        const userName = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.first_name : 'Пользователь';
+        let isAdmin = false;
+        let activeChatUserId = userId; // Для админа: какой чат сейчас открыт
 
-        document.getElementById('user-display').innerText = userName;
-
-        // Загрузка данных
-        async function loadData() {
-            try {
-                const res = await fetch(`/api/user/${userId}`);
-                const data = await res.json();
-                
-                // Фикс undefined: если данных нет, ставим 0.0
-                document.getElementById('balance').innerText = (data.balance || 0).toFixed(1);
-                document.getElementById('min-val').innerText = (data.minWithdraw || 1000) + ' G';
-
-                if (data.isAdmin) {
-                    document.getElementById('admin-badge').style.display = 'block';
-                }
-            } catch (e) {
-                console.error('Ошибка загрузки данных');
+        async function init() {
+            const res = await fetch(`/api/user/${userId}`);
+            const data = await res.json();
+            document.getElementById('balance').innerText = data.balance.toFixed(1);
+            if (data.isAdmin) {
+                isAdmin = true;
+                document.getElementById('admin-icon').style.display = 'block';
             }
+            loadMessages();
         }
 
-        // Переключение экранов
         function showScreen(name) {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-            
             document.getElementById(`screen-${name}`).classList.add('active');
-            if (name !== 'admin') {
-                document.getElementById(`nav-${name}`).classList.add('active');
+            if(name !== 'admin') document.getElementById(`nav-${name}`).classList.add('active');
+            if(name === 'admin') loadAdminData();
+            if(name === 'support') {
+                activeChatUserId = userId;
+                document.getElementById('support-title').innerText = 'Поддержка';
+                loadMessages();
             }
-
-            if (name === 'admin') loadAdminStats();
             tg.HapticFeedback.impactOccurred('light');
         }
 
-        // Работа с рекламой
-        function startWork() {
-            window.open(MONETAG_LINK, '_blank');
-            
+        // Реклама
+        function runAds() {
+            window.open('ТВОЯ_ССЫЛКА_MONETAG', '_blank');
             const btn = document.getElementById('adBtn');
-            const timerBox = document.getElementById('timer');
-            const secondsText = document.getElementById('seconds');
-            
-            btn.disabled = true;
-            timerBox.style.display = 'block';
-            let timeLeft = 15;
-
-            const timer = setInterval(() => {
-                timeLeft--;
-                secondsText.innerText = timeLeft;
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    finishWork();
-                    btn.disabled = false;
-                    timerBox.style.display = 'none';
+            const t = document.getElementById('timer');
+            btn.disabled = true; t.style.display = 'block';
+            let s = 15;
+            const iv = setInterval(async () => {
+                s--; document.getElementById('sec').innerText = s;
+                if(s <= 0) {
+                    clearInterval(iv);
+                    const res = await fetch('/api/reward', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId}) });
+                    const d = await res.json();
+                    document.getElementById('balance').innerText = d.newBalance.toFixed(1);
+                    btn.disabled = false; t.style.display = 'none';
                 }
             }, 1000);
         }
 
-        async function finishWork() {
-            try {
-                const res = await fetch('/api/reward', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('balance').innerText = data.newBalance.toFixed(1);
-                    tg.HapticFeedback.notificationOccurred('success');
-                }
-            } catch (e) {
-                tg.showAlert('Ошибка начисления');
-            }
+        // Поддержка
+        async function loadMessages() {
+            const res = await fetch(`/api/support/messages/${activeChatUserId}`);
+            const msgs = await res.json();
+            const box = document.getElementById('chat-box');
+            box.innerHTML = msgs.map(m => `
+                <div class="msg ${m.sender_id == userId ? 'me' : 'support'}">${m.message}</div>
+            `).join('');
+            box.scrollTop = box.scrollHeight;
         }
 
-        async function handleWithdraw() {
-            const gameId = document.getElementById('game-id').value;
-            if (!gameId) return tg.showAlert('Введите ID игры!');
-
-            try {
-                const res = await fetch('/api/withdraw', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, gameId })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    tg.showAlert('Заявка успешно создана! Ожидайте выплаты.');
-                    loadData();
-                    showScreen('main');
-                } else {
-                    tg.showAlert('Ошибка: ' + data.message);
-                }
-            } catch (e) {
-                tg.showAlert('Ошибка сервера');
-            }
+        async function sendSupportMsg() {
+            const input = document.getElementById('support-msg');
+            const text = input.value;
+            if(!text) return;
+            
+            await fetch('/api/support/send', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    userId: userId, 
+                    text: text, 
+                    isAdminReply: (isAdmin && activeChatUserId !== userId),
+                    targetUserId: activeChatUserId 
+                })
+            });
+            input.value = '';
+            loadMessages();
         }
 
-        async function loadAdminStats() {
+        // Админ логика
+        async function loadAdminData() {
             const res = await fetch('/api/admin/stats');
-            const data = await res.json();
-            document.getElementById('admin-users').innerText = data.users;
-            document.getElementById('admin-debt').innerText = data.debt + ' G';
+            const s = await res.json();
+            document.getElementById('admin-stats').innerText = `Юзеров: ${s.users} | Долг: ${s.debt} G`;
+            
+            const tRes = await fetch('/api/admin/support-list');
+            const tickets = await tRes.json();
+            document.getElementById('admin-tickets').innerHTML = tickets.map(t => `
+                <button class="btn" style="background: var(--card); color: #fff; font-size: 12px;" onclick="openAdminChat(${t.user_id})">
+                    Чат с ID: ${t.user_id}
+                </button>
+            `).join('');
         }
 
-        // Инициализация
+        function openAdminChat(targetId) {
+            activeChatUserId = targetId;
+            showScreen('support');
+            document.getElementById('support-title').innerText = 'Ответ игроку ' + targetId;
+        }
+
+        async function requestWithdraw() {
+            const gid = document.getElementById('game-id').value;
+            const res = await fetch('/api/withdraw', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId, gameId: gid}) });
+            const d = await res.json();
+            tg.showAlert(d.success ? 'Успешно!' : d.message);
+            init();
+        }
+
         lucide.createIcons();
-        loadData();
+        init();
+        setInterval(loadMessages, 5000); // Автообновление чата раз в 5 сек
     </script>
 </body>
 </html>
