@@ -3,284 +3,334 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Evo Gold</title>
+    <title>Evolution Gold Vault</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@500&display=swap');
+
         :root {
-            --bg-color: #0f0f13;
-            --card-bg: #1c1c24;
-            --primary: #f1c40f; /* Gold */
-            --accent: #3498db;
-            --text: #ffffff;
-            --secondary-text: #888899;
+            --bg: #050505;
+            --card-bg: rgba(28, 28, 36, 0.7);
+            --primary: #FFD700; /* Gold */
+            --primary-glow: rgba(255, 215, 0, 0.4);
+            --accent: #00F0FF; /* Cyber Blue */
+            --text: #FFFFFF;
+            --text-dim: #94A3B8;
+            --danger: #FF4B4B;
         }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
         body {
-            background-color: var(--bg-color);
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 90% 80%, rgba(0, 240, 255, 0.05) 0%, transparent 40%);
             color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: 'Inter', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
+            overflow: hidden; /* Отключаем лишний скролл */
+            height: 100vh;
+        }
+
+        .app-container {
             display: flex;
             flex-direction: column;
+            height: 100vh;
+            padding: 20px 16px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            min-height: 100vh;
+            margin-bottom: 24px;
         }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .avatar { width: 36px; height: 36px; background: var(--card-bg); border-radius: 50%; border: 1px solid var(--primary); display: flex; align-items: center; justify-content: center; }
+        .status-badge { background: rgba(0, 240, 255, 0.1); color: var(--accent); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; text-transform: uppercase; border: 1px solid var(--accent); }
 
-        /* Balance Card */
+        /* Balance Section */
         .balance-card {
-            background: linear-gradient(145deg, #252530, #18181f);
-            width: 100%;
-            max-width: 350px;
-            padding: 25px;
-            border-radius: 20px;
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 30px 20px;
             text-align: center;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
-            margin-bottom: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            margin-bottom: 20px;
         }
-        .balance-label { color: var(--secondary-text); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-        .balance-amount { font-size: 42px; font-weight: 800; color: var(--primary); margin: 10px 0; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
-        .currency { font-size: 20px; color: #fff; }
+        .balance-card::before {
+            content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+            background: conic-gradient(from 0deg, transparent, var(--primary-glow), transparent 30%);
+            animation: rotate 6s linear infinite;
+        }
+        @keyframes rotate { 100% { transform: rotate(360deg); } }
 
-        /* Buttons */
-        .btn {
-            width: 100%;
-            max-width: 350px;
-            padding: 18px;
+        .balance-content { position: relative; z-index: 1; }
+        .balance-label { color: var(--text-dim); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+        .balance-val { font-family: 'JetBrains Mono', monospace; font-size: 48px; font-weight: 800; color: var(--primary); text-shadow: 0 0 20px var(--primary-glow); }
+        .balance-val span { font-size: 20px; color: var(--text); margin-left: 4px; }
+
+        /* Actions */
+        .main-action {
+            background: linear-gradient(135deg, #FFD700 0%, #B8860B 100%);
+            color: #000;
+            padding: 20px;
+            border-radius: 18px;
+            font-weight: 800;
+            font-size: 18px;
             border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
             cursor: pointer;
-            transition: transform 0.1s, opacity 0.2s;
-            margin-bottom: 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(255, 215, 0, 0.3);
+            transition: 0.2s;
+            margin-bottom: 12px;
         }
-        .btn:active { transform: scale(0.98); }
-        .btn-primary { 
-            background: linear-gradient(90deg, #3498db, #2980b9); 
-            color: white; 
-            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
-        }
-        .btn-withdraw { 
-            background: linear-gradient(90deg, #f39c12, #d35400); 
-            color: white; 
-            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
-        }
-        .btn-admin {
-            background: #e74c3c;
-            color: white;
-            margin-top: 20px;
-            display: none; /* Скрыта по умолчанию */
-        }
-        
-        .input-group {
-            width: 100%;
-            max-width: 350px;
+        .main-action:active { transform: scale(0.96); box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2); }
+        .main-action:disabled { filter: grayscale(1); opacity: 0.6; cursor: not-allowed; }
+
+        /* Secondary actions grid */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+        .stat-item { background: var(--card-bg); border: 1px solid rgba(255,255,255,0.05); padding: 16px; border-radius: 18px; display: flex; flex-direction: column; gap: 4px; }
+        .stat-label { color: var(--text-dim); font-size: 11px; text-transform: uppercase; }
+        .stat-val { color: var(--text); font-weight: 600; font-size: 15px; }
+
+        /* Bottom Nav */
+        .nav-bar {
+            margin-top: auto;
+            background: rgba(15, 15, 20, 0.9);
+            backdrop-filter: blur(20px);
+            padding: 12px 24px;
+            border-radius: 24px;
+            display: flex;
+            justify-content: space-between;
+            border: 1px solid rgba(255,255,255,0.08);
             margin-bottom: 10px;
         }
-        input {
-            width: 100%;
-            padding: 15px;
-            border-radius: 12px;
-            background: var(--card-bg);
-            border: 1px solid #333;
-            color: white;
-            font-size: 16px;
-            box-sizing: border-box;
-            outline: none;
-        }
-        input:focus { border-color: var(--accent); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-dim); cursor: pointer; transition: 0.2s; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item span { font-size: 10px; font-weight: 600; }
 
-        /* Timer & Popups */
-        #timer { color: var(--secondary-text); margin-bottom: 15px; font-size: 14px; display: none; }
-        .loader { width: 20px; height: 20px; border: 3px solid #FFF; border-bottom-color: transparent; border-radius: 50%; animation: rotation 1s linear infinite; display: none; }
-        
-        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Tab Screens */
+        .screen { display: none; flex-direction: column; height: 100%; animation: fadeIn 0.3s ease; }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Admin Modal */
-        #adminPanel {
-            display: none;
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 100;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        .stat-box { text-align: left; background: #222; padding: 20px; border-radius: 10px; width: 80%; }
-        .close-btn { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
+        /* Withdrawal Input */
+        .withdraw-input-wrapper { background: var(--card-bg); padding: 20px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); margin-top: 20px; }
+        input { width: 100%; background: transparent; border: none; border-bottom: 2px solid #333; color: white; padding: 12px 0; font-size: 18px; outline: none; transition: 0.3s; margin-bottom: 20px; }
+        input:focus { border-color: var(--primary); }
+
+        /* Timer Overlay */
+        #timer-overlay { display: none; color: var(--accent); font-family: 'JetBrains Mono'; margin-bottom: 15px; text-align: center; }
 
     </style>
 </head>
 <body>
 
-    <div class="balance-card">
-        <div class="balance-label">Твой баланс</div>
-        <div class="balance-amount"><span id="balance">0.0</span> <span class="currency">G</span></div>
-    </div>
-
-    <!-- Блок заработка -->
-    <div id="timer">⏳ Ожидание проверки... <span id="timeLeft">15</span> сек</div>
-    <button class="btn btn-primary" id="adBtn" onclick="watchAd()">
-        🌐 Просмотр сайтов (+1.0-1.5 G)
-    </button>
-
-    <hr style="width: 100%; max-width: 350px; border-color: #333; margin: 25px 0;">
-
-    <!-- Блок вывода -->
-    <div class="input-group">
-        <input type="text" id="gameId" placeholder="Введи свой ID (Project Evo)">
-    </div>
-    <button class="btn btn-withdraw" onclick="withdraw()">
-        <span class="loader" id="wLoader"></span>
-        <span id="wText">📤 Вывести в игру</span>
-    </button>
-    <div style="font-size: 12px; color: #666; margin-top: 5px;">Минимум: <span id="minLimit">1000</span> G</div>
-
-    <!-- Скрытая кнопка админа -->
-    <button class="btn btn-admin" id="adminBtn" onclick="openAdmin()">👮 Админ Панель</button>
-
-    <!-- Модалка Админа -->
-    <div id="adminPanel">
-        <div class="close-btn" onclick="document.getElementById('adminPanel').style.display='none'">&times;</div>
-        <h2 style="color: #fff">Статистика</h2>
-        <div class="stat-box">
-            <p>👥 Игроков: <span id="statUsers" style="color: #3498db">...</span></p>
-            <p>💰 Долг проекта: <span id="statDebt" style="color: #f1c40f">...</span> G</p>
+    <div class="app-container">
+        
+        <!-- Header -->
+        <div class="header">
+            <div class="user-info">
+                <div class="avatar"><i data-lucide="user" size="20" color="#FFD700"></i></div>
+                <div>
+                    <div id="username" style="font-weight: 600; font-size: 14px;">User</div>
+                    <div class="status-badge">Elite Operative</div>
+                </div>
+            </div>
+            <div id="admin-trigger" onclick="switchTab('admin')" style="display:none">
+                <i data-lucide="shield-check" color="#FF4B4B"></i>
+            </div>
         </div>
+
+        <!-- Home Screen -->
+        <div id="home-screen" class="screen active">
+            <div class="balance-card">
+                <div class="balance-content">
+                    <div class="balance-label">Available Gold</div>
+                    <div class="balance-val"><span id="balance">0.0</span><span>G</span></div>
+                </div>
+            </div>
+
+            <div id="timer-overlay">SYNCHRONIZING: <span id="timeLeft">15</span>s</div>
+
+            <button class="main-action" id="adBtn" onclick="watchAd()">
+                <i data-lucide="zap" fill="currentColor"></i>
+                PROCESS DATA
+            </button>
+
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Min. Payout</div>
+                    <div class="stat-val" id="minLimit">1000 G</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Daily Limit</div>
+                    <div class="stat-val">Unlimited</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdraw Screen -->
+        <div id="withdraw-screen" class="screen">
+            <h2 style="margin: 0 0 10px 0; font-size: 24px; font-weight: 800;">Withdrawal</h2>
+            <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 20px;">Transfer your earned assets to Project Evolution account.</p>
+            
+            <div class="withdraw-input-wrapper">
+                <label style="font-size: 12px; color: var(--primary); font-weight: 600; text-transform: uppercase;">Game Account ID</label>
+                <input type="text" id="gameId" placeholder="ID: 00000000">
+                <button class="main-action" style="width: 100%; margin: 0;" onclick="withdraw()">
+                    INITIATE TRANSFER
+                </button>
+            </div>
+        </div>
+
+        <!-- Admin Screen -->
+        <div id="admin-screen" class="screen">
+            <h2 style="color: var(--danger)">Admin Terminal</h2>
+            <div class="stats-grid" style="grid-template-columns: 1fr;">
+                <div class="stat-item">
+                    <div class="stat-label">Total Users</div>
+                    <div class="stat-val" id="statUsers">...</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Liabilities</div>
+                    <div class="stat-val" id="statDebt">... G</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Navigation -->
+        <div class="nav-bar">
+            <div class="nav-item active" id="nav-home" onclick="switchTab('home')">
+                <i data-lucide="home"></i>
+                <span>VAULT</span>
+            </div>
+            <div class="nav-item" id="nav-withdraw" onclick="switchTab('withdraw')">
+                <i data-lucide="arrow-up-right"></i>
+                <span>TRANSFER</span>
+            </div>
+            <div class="nav-item" onclick="tg.showAlert('Support: @your_handle')">
+                <i data-lucide="help-circle"></i>
+                <span>SUPPORT</span>
+            </div>
+        </div>
+
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.enableClosingConfirmation();
+        tg.backgroundColor = '#050505';
+        tg.headerColor = '#050505';
 
-        // СЮДА ВСТАВЬ ССЫЛКУ MONETAG
-        const MONETAG_LINK = 'https://твоя-ссылка.com'; 
-
+        const MONETAG_LINK = 'https://omg10.com/4/10652849';
         const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0;
-        const API_URL = ''; // Оставь пустым
-
-        let isWorking = false;
+        const username = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.username : 'Unknown User';
+        
+        document.getElementById('username').innerText = username;
 
         async function init() {
-            if (userId === 0) {
-                document.getElementById('balance').innerText = 'ERROR';
-                return tg.showAlert('Запустите через Телеграм!');
-            }
-
             try {
-                const res = await fetch(`${API_URL}/api/user/${userId}`);
+                const res = await fetch(`/api/user/${userId}`);
                 const data = await res.json();
                 
                 document.getElementById('balance').innerText = data.balance;
-                document.getElementById('minLimit').innerText = data.minWithdraw;
+                document.getElementById('minLimit').innerText = data.minWithdraw + ' G';
 
-                // Если админ, показываем панель
                 if (data.isAdmin) {
-                    document.getElementById('adminBtn').style.display = 'block';
+                    document.getElementById('admin-trigger').style.display = 'block';
                 }
             } catch (e) {
-                tg.showAlert('Ошибка соединения с сервером');
+                console.error('Init error');
             }
         }
 
-        function watchAd() {
-            if (isWorking) return;
+        function switchTab(tab) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             
-            // Открываем рекламу
+            document.getElementById(`${tab}-screen`).classList.add('active');
+            const nav = document.getElementById(`nav-${tab}`);
+            if(nav) nav.classList.add('active');
+
+            if (tab === 'admin') loadAdminStats();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        function watchAd() {
             window.open(MONETAG_LINK, '_blank');
             
             const btn = document.getElementById('adBtn');
-            const timerDiv = document.getElementById('timer');
+            const timerDiv = document.getElementById('timer-overlay');
             const timeLeftSpan = document.getElementById('timeLeft');
             
-            isWorking = true;
-            btn.style.opacity = '0.5';
             btn.disabled = true;
             timerDiv.style.display = 'block';
-            let timeLeft = 15; // Время просмотра
+            let timeLeft = 15;
 
             const interval = setInterval(() => {
                 timeLeft--;
                 timeLeftSpan.innerText = timeLeft;
-                
                 if (timeLeft <= 0) {
                     clearInterval(interval);
                     claimReward();
-                    
-                    isWorking = false;
-                    btn.style.opacity = '1';
                     btn.disabled = false;
                     timerDiv.style.display = 'none';
-                    timeLeft = 15;
                 }
             }, 1000);
         }
 
         async function claimReward() {
-            try {
-                const res = await fetch(`${API_URL}/api/reward`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    document.getElementById('balance').innerText = data.newBalance;
-                    tg.HapticFeedback.notificationOccurred('success'); // Вибрация
-                    tg.showAlert(`✅ Заработано: +${data.reward} G`);
-                }
-            } catch (e) {
-                tg.showAlert('Ошибка сети');
+            const res = await fetch('/api/reward', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('balance').innerText = data.newBalance;
+                tg.HapticFeedback.notificationOccurred('success');
             }
         }
 
         async function withdraw() {
             const gameId = document.getElementById('gameId').value;
-            if (!gameId) return tg.showAlert('Введите ваш ID из игры!');
+            if (!gameId) return tg.showScanQrPopup({ text: 'Scan Game ID' }); // Just for style or alert
 
-            const btnText = document.getElementById('wText');
-            const loader = document.getElementById('wLoader');
-            
-            btnText.style.display = 'none';
-            loader.style.display = 'inline-block';
-
-            try {
-                const res = await fetch(`${API_URL}/api/withdraw`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, gameId })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    tg.showAlert('✅ Заявка отправлена админу!');
-                    init(); // Обновить баланс
-                } else {
-                    tg.showAlert(`❌ Ошибка: ${data.message}`);
-                }
-            } catch (e) {
-                tg.showAlert('Ошибка сервера');
-            } finally {
-                btnText.style.display = 'inline';
-                loader.style.display = 'none';
+            const res = await fetch('/api/withdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, gameId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                tg.showAlert('TRANSFER INITIATED. Assets will arrive shortly.');
+                init();
+            } else {
+                tg.showAlert('ERROR: ' + data.message);
             }
         }
 
-        async function openAdmin() {
-            document.getElementById('adminPanel').style.display = 'flex';
-            const res = await fetch(`${API_URL}/api/admin/stats`);
+        async function loadAdminStats() {
+            const res = await fetch('/api/admin/stats');
             const data = await res.json();
             document.getElementById('statUsers').innerText = data.users;
             document.getElementById('statDebt').innerText = data.debt;
         }
 
+        // Initialize icons and data
+        lucide.createIcons();
         init();
     </script>
 </body>
