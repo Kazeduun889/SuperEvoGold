@@ -2,64 +2,208 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Earn Gold</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Evo Gold</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; background-color: #1c1c1e; color: white; text-align: center; padding: 20px; }
-        .btn { display: block; width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-size: 16px; cursor: pointer; }
-        .btn-ad { background-color: #34b7f1; color: white; }
-        .btn-withdraw { background-color: #f1c40f; color: black; }
-        .balance { font-size: 24px; margin-bottom: 20px; font-weight: bold; }
-        .input-field { width: 90%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 10px; }
-        #timer { color: #888; display: none; margin-bottom: 10px;}
+        :root {
+            --bg-color: #0f0f13;
+            --card-bg: #1c1c24;
+            --primary: #f1c40f; /* Gold */
+            --accent: #3498db;
+            --text: #ffffff;
+            --secondary-text: #888899;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(145deg, #252530, #18181f);
+            width: 100%;
+            max-width: 350px;
+            padding: 25px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .balance-label { color: var(--secondary-text); font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-amount { font-size: 42px; font-weight: 800; color: var(--primary); margin: 10px 0; text-shadow: 0 0 10px rgba(241, 196, 15, 0.3); }
+        .currency { font-size: 20px; color: #fff; }
+
+        /* Buttons */
+        .btn {
+            width: 100%;
+            max-width: 350px;
+            padding: 18px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.1s, opacity 0.2s;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-primary { 
+            background: linear-gradient(90deg, #3498db, #2980b9); 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
+        }
+        .btn-withdraw { 
+            background: linear-gradient(90deg, #f39c12, #d35400); 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(243, 156, 18, 0.4);
+        }
+        .btn-admin {
+            background: #e74c3c;
+            color: white;
+            margin-top: 20px;
+            display: none; /* Скрыта по умолчанию */
+        }
+        
+        .input-group {
+            width: 100%;
+            max-width: 350px;
+            margin-bottom: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 12px;
+            background: var(--card-bg);
+            border: 1px solid #333;
+            color: white;
+            font-size: 16px;
+            box-sizing: border-box;
+            outline: none;
+        }
+        input:focus { border-color: var(--accent); }
+
+        /* Timer & Popups */
+        #timer { color: var(--secondary-text); margin-bottom: 15px; font-size: 14px; display: none; }
+        .loader { width: 20px; height: 20px; border: 3px solid #FFF; border-bottom-color: transparent; border-radius: 50%; animation: rotation 1s linear infinite; display: none; }
+        
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Admin Modal */
+        #adminPanel {
+            display: none;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .stat-box { text-align: left; background: #222; padding: 20px; border-radius: 10px; width: 80%; }
+        .close-btn { position: absolute; top: 20px; right: 20px; color: white; font-size: 30px; cursor: pointer; }
+
     </style>
 </head>
 <body>
 
-    <h1>Project Evo Gold</h1>
-    <div class="balance">Баланс: <span id="balance">0</span> G</div>
+    <div class="balance-card">
+        <div class="balance-label">Твой баланс</div>
+        <div class="balance-amount"><span id="balance">0.0</span> <span class="currency">G</span></div>
+    </div>
 
-    <!-- Кнопка рекламы -->
-    <button class="btn btn-ad" id="adBtn" onclick="watchAd()">📺 Смотреть рекламу (+10 G)</button>
-    <div id="timer">Ждите проверки... <span id="timeLeft">10</span> сек</div>
+    <!-- Блок заработка -->
+    <div id="timer">⏳ Ожидание проверки... <span id="timeLeft">15</span> сек</div>
+    <button class="btn btn-primary" id="adBtn" onclick="watchAd()">
+        🌐 Просмотр сайтов (+1.0-1.5 G)
+    </button>
 
-    <hr style="border-color: #333; margin: 20px 0;">
+    <hr style="width: 100%; max-width: 350px; border-color: #333; margin: 25px 0;">
 
-    <!-- Форма вывода -->
-    <h3>Вывод средств</h3>
-    <input type="text" id="gameId" class="input-field" placeholder="Ваш ID в Project Evolution">
-    <button class="btn btn-withdraw" onclick="withdraw()">📤 Вывести в игру</button>
+    <!-- Блок вывода -->
+    <div class="input-group">
+        <input type="text" id="gameId" placeholder="Введи свой ID (Project Evo)">
+    </div>
+    <button class="btn btn-withdraw" onclick="withdraw()">
+        <span class="loader" id="wLoader"></span>
+        <span id="wText">📤 Вывести в игру</span>
+    </button>
+    <div style="font-size: 12px; color: #666; margin-top: 5px;">Минимум: <span id="minLimit">1000</span> G</div>
+
+    <!-- Скрытая кнопка админа -->
+    <button class="btn btn-admin" id="adminBtn" onclick="openAdmin()">👮 Админ Панель</button>
+
+    <!-- Модалка Админа -->
+    <div id="adminPanel">
+        <div class="close-btn" onclick="document.getElementById('adminPanel').style.display='none'">&times;</div>
+        <h2 style="color: #fff">Статистика</h2>
+        <div class="stat-box">
+            <p>👥 Игроков: <span id="statUsers" style="color: #3498db">...</span></p>
+            <p>💰 Долг проекта: <span id="statDebt" style="color: #f1c40f">...</span> G</p>
+        </div>
+    </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.enableClosingConfirmation();
 
-        const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 'test_user';
-        const API_URL = ''; // Оставьте пустым, если фронт и бэк на одном домене
+        // СЮДА ВСТАВЬ ССЫЛКУ MONETAG
+        const MONETAG_LINK = 'https://твоя-ссылка.com'; 
 
-        // Вставьте сюда вашу ссылку от Monetag
-        const MONETAG_LINK = 'https://omg10.com/4/10652849'; 
+        const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : 0;
+        const API_URL = ''; // Оставь пустым
 
-        // Загрузка баланса
-        async function loadBalance() {
-            const res = await fetch(`${API_URL}/api/balance/${userId}`);
-            const data = await res.json();
-            document.getElementById('balance').innerText = data.balance;
+        let isWorking = false;
+
+        async function init() {
+            if (userId === 0) {
+                document.getElementById('balance').innerText = 'ERROR';
+                return tg.showAlert('Запустите через Телеграм!');
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/api/user/${userId}`);
+                const data = await res.json();
+                
+                document.getElementById('balance').innerText = data.balance;
+                document.getElementById('minLimit').innerText = data.minWithdraw;
+
+                // Если админ, показываем панель
+                if (data.isAdmin) {
+                    document.getElementById('adminBtn').style.display = 'block';
+                }
+            } catch (e) {
+                tg.showAlert('Ошибка соединения с сервером');
+            }
         }
 
         function watchAd() {
-            // 1. Открываем рекламу
+            if (isWorking) return;
+            
+            // Открываем рекламу
             window.open(MONETAG_LINK, '_blank');
             
-            // 2. Запускаем таймер имитации проверки
             const btn = document.getElementById('adBtn');
             const timerDiv = document.getElementById('timer');
             const timeLeftSpan = document.getElementById('timeLeft');
             
+            isWorking = true;
+            btn.style.opacity = '0.5';
             btn.disabled = true;
             timerDiv.style.display = 'block';
-            let timeLeft = 10;
+            let timeLeft = 15; // Время просмотра
 
             const interval = setInterval(() => {
                 timeLeft--;
@@ -67,46 +211,77 @@
                 
                 if (timeLeft <= 0) {
                     clearInterval(interval);
-                    // Начисляем награду
                     claimReward();
                     
+                    isWorking = false;
+                    btn.style.opacity = '1';
                     btn.disabled = false;
                     timerDiv.style.display = 'none';
-                    timeLeft = 10;
+                    timeLeft = 15;
                 }
             }, 1000);
         }
 
         async function claimReward() {
-            const res = await fetch(`${API_URL}/api/reward`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId })
-            });
-            loadBalance();
-            tg.showAlert('Начислено +10 монет!');
+            try {
+                const res = await fetch(`${API_URL}/api/reward`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    document.getElementById('balance').innerText = data.newBalance;
+                    tg.HapticFeedback.notificationOccurred('success'); // Вибрация
+                    tg.showAlert(`✅ Заработано: +${data.reward} G`);
+                }
+            } catch (e) {
+                tg.showAlert('Ошибка сети');
+            }
         }
 
         async function withdraw() {
             const gameId = document.getElementById('gameId').value;
-            if (!gameId) return tg.showAlert('Введите ID из игры!');
+            if (!gameId) return tg.showAlert('Введите ваш ID из игры!');
 
-            const res = await fetch(`${API_URL}/api/withdraw`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, gameId })
-            });
+            const btnText = document.getElementById('wText');
+            const loader = document.getElementById('wLoader');
             
-            const data = await res.json();
-            if (data.success) {
-                tg.showAlert('Заявка отправлена админу!');
-                loadBalance();
-            } else {
-                tg.showAlert(data.message);
+            btnText.style.display = 'none';
+            loader.style.display = 'inline-block';
+
+            try {
+                const res = await fetch(`${API_URL}/api/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, gameId })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    tg.showAlert('✅ Заявка отправлена админу!');
+                    init(); // Обновить баланс
+                } else {
+                    tg.showAlert(`❌ Ошибка: ${data.message}`);
+                }
+            } catch (e) {
+                tg.showAlert('Ошибка сервера');
+            } finally {
+                btnText.style.display = 'inline';
+                loader.style.display = 'none';
             }
         }
 
-        loadBalance();
+        async function openAdmin() {
+            document.getElementById('adminPanel').style.display = 'flex';
+            const res = await fetch(`${API_URL}/api/admin/stats`);
+            const data = await res.json();
+            document.getElementById('statUsers').innerText = data.users;
+            document.getElementById('statDebt').innerText = data.debt;
+        }
+
+        init();
     </script>
 </body>
 </html>
